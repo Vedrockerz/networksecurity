@@ -25,6 +25,8 @@ from sklearn.ensemble import (
     GradientBoostingClassifier,
     RandomForestClassifier,
 )
+import dagshub
+dagshub.init(repo_owner='Vedrockerz', repo_name='networksecurity', mlflow=True)
 
 class ModelTrainer:
     def __init__(self,model_trainer_config : ModelTrainerConfig , data_transformation_artifact:DataTransformationArtifact):
@@ -35,15 +37,16 @@ class ModelTrainer:
             raise NetworkSecurityException(e,sys)
         
     def track_mlflow(self,best_model,classificationmetric):
+        mlflow.set_registry_uri("none")
+
         with mlflow.start_run():
             f1_score = classificationmetric.f1_score
             precision_score = classificationmetric.precision_score
             recall_score = classificationmetric.recall_score
-            
+
             mlflow.log_metric("f1_score",f1_score)
             mlflow.log_metric("precision",precision_score)
             mlflow.log_metric("recall",recall_score)
-            mlflow.sklearn.log_model(best_model,"model")
         
     def train_model(self,X_train,y_train,X_test,y_test):
         try:
@@ -114,6 +117,8 @@ class ModelTrainer:
 
             Network_Model = NetworkModel(preprocessor=preprocessor,model=best_model)
             save_object(self.model_trainer_config.trained_model_file_path,obj=Network_Model)
+
+            save_object("final_model/model.pkl",best_model)
 
             model_trainer_artifact = ModelTrainerArtifact(
                 trained_model_file_path=self.model_trainer_config.trained_model_file_path,
